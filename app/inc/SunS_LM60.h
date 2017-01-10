@@ -8,8 +8,8 @@ namespace hal {
 
 class SunS_LM60 {
  public:
-    constexpr SunS_LM60(const InternalADC::Input input, const uint8_t resolution) :
-            analog_channel{input}, oversample((resolution < 10) ? 1 : ((resolution > 16) ? 64 : (1 << (resolution - 10)))) {
+    constexpr SunS_LM60(const InternalADC::Input input, const uint8_t resolution, const float reference_voltage) :
+            analog_channel{input}, oversample((resolution < 10) ? 1 : ((resolution > 16) ? 64 : (1 << (resolution - 10)))), reference_voltage(reference_voltage) {
     }
 
     uint16_t measure() {
@@ -27,13 +27,14 @@ class SunS_LM60 {
         float temperature = LM60::temperature(mv);
         return temperature;
     }
-
+\
  private:
     const InternalADC::Input analog_channel;
     const uint8_t oversample;
+    const float reference_voltage;
 
     float bits_to_mV(uint16_t raw) {
-        return static_cast<float>(raw)/(oversample)/1024.0*InternalADC::read_reference()*1000;
+        return static_cast<float>(raw)/(oversample)/1024.0*reference_voltage*1000;
     }
    
 };

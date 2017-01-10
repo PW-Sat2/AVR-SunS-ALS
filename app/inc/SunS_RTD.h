@@ -8,8 +8,8 @@ namespace hal {
 
 class SunS_RTD {
  public:
-    constexpr SunS_RTD(const InternalADC::Input input, const uint8_t resolution, const float ref_resistance, const RTD rtd = RTD(1000)) :
-            analog_channel{input}, oversample((resolution < 10) ? 1 : ((resolution > 16) ? 64 : (1 << (resolution - 10)))), ref_resistance(ref_resistance), rtd{rtd} {
+    constexpr SunS_RTD(const InternalADC::Input input, const uint8_t resolution, const float ref_resistance, const float reference_voltage, const RTD rtd = RTD(1000)) :
+            analog_channel{input}, oversample((resolution < 10) ? 1 : ((resolution > 16) ? 64 : (1 << (resolution - 10)))), ref_resistance(ref_resistance), rtd{rtd}, reference_voltage(reference_voltage) {
     }
 
     uint16_t measure() {
@@ -24,7 +24,7 @@ class SunS_RTD {
 
     float resistance(uint16_t raw) {
         float mv = bits_to_mV(raw);
-        return ref_resistance/(InternalADC::read_reference()*1000/mv - 1); 
+        return ref_resistance/(reference_voltage*1000/mv - 1); 
     }
 
     float temperature(uint16_t raw) {
@@ -36,11 +36,11 @@ class SunS_RTD {
  private:
     const InternalADC::Input analog_channel;
     const uint8_t oversample;
-    const float ref_resistance;
+    const float ref_resistance, reference_voltage;
     RTD rtd;
 
     float bits_to_mV(uint16_t raw) {
-        return static_cast<float>(raw)/(oversample)/1024.0*InternalADC::read_reference()*1000;
+        return static_cast<float>(raw)/(oversample)/1024.0*reference_voltage*1000;
     }
   
 };
