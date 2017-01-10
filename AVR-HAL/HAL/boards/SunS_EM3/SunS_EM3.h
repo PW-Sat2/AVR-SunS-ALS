@@ -5,14 +5,13 @@
 #include "periph/Serial.h"
 #include "periph/Analog.h"
 
-#ifdef DEBUG
-#define printf printf
-#else
-#define printf(text) ((void)0)
-#endif
-
 namespace hal {
 namespace bsp {
+
+static constexpr InternalADC::Reference ADC_REFERENCE_TYPE = InternalADC::Reference::AREF;
+static constexpr float ADC_REFERENCE_VALUE = 1.225;
+static constexpr float RTD_REFERENCE_RESISTANCE = 1000;
+
 static constexpr InternalADC::Input TEMP_BOARD = InternalADC::Input::ADC4;
 static constexpr InternalADC::Input RTD_AIN_A = InternalADC::Input::ADC3;
 static constexpr InternalADC::Input RTD_AIN_B = InternalADC::Input::ADC2;
