@@ -25,58 +25,65 @@ using namespace bsp;
 - */
 
 
+using ALS_1_Type = SunS_BH1730FVC<pins::SCL_1, pins::SDA_A1, pins::SDA_B1, pins::SDA_C1, pins::SDA_D1>;
+using ALS_2_Type = SunS_BH1730FVC<pins::SCL_2, pins::SDA_A2, pins::SDA_B2, pins::SDA_C2, pins::SDA_D2>;
+using ALS_3_Type = SunS_BH1730FVC<pins::SCL_3, pins::SDA_A3, pins::SDA_B3, pins::SDA_C3, pins::SDA_D3>;
+
+
 int main() {
-
-    InternalADC::init(InternalADC::Prescaler::DIV_128, InternalADC::Reference::AVcc, 5);
-    SunS_LM60 lm(InternalADC::Input::ADC15, 16);
-
-    RTD myRTD(500);
-    SunS_RTD rtd(InternalADC::Input::ADC15, 16, 2200, myRTD);
-
-    Serial0.init(115200);
-
-    libs::array<uint16_t, 4> dataVL, dataIR;
-    BH1730FVC ALS(pins::D2, pins::D3, pins::D4, pins::D5, pins::D6);
-    //BH1730FVC ALS2(pins::A5, pins::A1, pins::A2, pins::A3, pins::A4);
+    Serial0.init(9600);
+    InternalADC::init(InternalADC::Prescaler::DIV_128, ADC_REFERENCE_TYPE, ADC_REFERENCE_VALUE);
     
+    SunS_LM60 lm(TEMP_BOARD, 16);
 
-    ALS.init();
-    //ALS2.init();
+    SunS_RTD RTD_A(RTD_AIN_A, 16, RTD_REFERENCE_RESISTANCE);
+    SunS_RTD RTD_B(RTD_AIN_B, 16, RTD_REFERENCE_RESISTANCE);
+    SunS_RTD RTD_C(RTD_AIN_C, 16, RTD_REFERENCE_RESISTANCE);
+    SunS_RTD RTD_D(RTD_AIN_D, 16, RTD_REFERENCE_RESISTANCE);
 
-    ALS.setMeasurement(BH1730FVC::CONTINUOUS, BH1730FVC::VL_IR);
-    ALS.setGain(BH1730FVC::GAIN_64);
-    ALS.setIntegrationTime(100);
+    SunS_BH1730FVC <pins::SCL_1, pins::SDA_A1, pins::SDA_B1, pins::SDA_C1, pins::SDA_D1> ALS_1;
+    SunS_BH1730FVC <pins::SCL_2, pins::SDA_A2, pins::SDA_B2, pins::SDA_C2, pins::SDA_D2> ALS_2;
+    SunS_BH1730FVC <pins::SCL_3, pins::SDA_A3, pins::SDA_B3, pins::SDA_C3, pins::SDA_D3> ALS_3;
 
-    /*ALS2.setMeasurement(BH1730FVC::CONTINUOUS, BH1730FVC::VL_ONLY);
-    ALS2.setGain(BH1730FVC::GAIN_1);
-    ALS2.setIntegrationTime(38);
-    */
-    
-    _delay_ms(1000);
-    
+
+    uint16_t raw_a, raw_b, raw_c, raw_d;
+    libs::array<uint16_t, 4> dataVL_1, dataIR_1, dataVL_2, dataIR_2, dataVL_3, dataIR_3;
+    libs::array<uint8_t, 4> ids;
+
     while (true) {
-        libs::array<softI2Cmulti::Status, 5> status = ALS.ambientLightRAW(dataVL, dataIR);
-        //libs::array<softI2Cmulti::Status, 5> status2 = ALS2.ambientLightRAW(dataVL2);
+        raw_a = RTD_A.measure();
+        raw_b = RTD_B.measure();
+        raw_c = RTD_C.measure();
+        raw_d = RTD_D.measure();
 
+        ids = ALS_1.readPartID();
+        ALS_1.setGain(ALS_1_Type::GAIN_1);
+        ALS_1.setIntegrationTime(38);
 
-        libs::array<uint8_t, 4> ids = ALS.readPartID();
-        //libs::array<uint8_t, 4> ids2 = ALS2.readPartID();
+        ids = ALS_2.readPartID();
+        ALS_2.setGain(ALS_2_Type::GAIN_1);
+        ALS_2.setIntegrationTime(38);
 
+        ids = ALS_3.readPartID();
+        ALS_3.setGain(ALS_3_Type::GAIN_1);
+        ALS_3.setIntegrationTime(38);
 
-        for (uint8_t i = 0; i < 4; i++) {
-            Serial0.printf("%u \t %u \t Status: %d \t VL: %u\r\n", i, ids[i], status[i], dataVL[i]);
-        }
-        Serial0.printf("%u\r\n", status[4]);
+        ALS_1.setMeasurement(ALS_1_Type::ONE_SHOT, ALS_1_Type::VL_IR);
+        ALS_2.setMeasurement(ALS_2_Type::ONE_SHOT, ALS_2_Type::VL_IR);
+        ALS_3.setMeasurement(ALS_3_Type::ONE_SHOT, ALS_3_Type::VL_IR);
 
-        /*for (uint8_t i = 0; i < 4; i++) {
-            Serial0.printf("%u \t %u \t Status: %d \t VL: %u\r\n", i, ids2[i], status2[i], dataVL2[i]);
-        }
-        Serial0.printf("%u\r\n", status2[4]);
-        */
-        //Serial0.printf("---------------------\r\n");
-        //Serial0.printf("LM60: %f\r\n", lm.temperature(lm.measure()));
-        //Serial0.printf("---------------------\r\n");
+        _delay_ms(900);
 
-        _delay_ms(500);
+        ALS_1.ambientLightRAW(dataVL_1, dataIR_1);
+        ALS_2.ambientLightRAW(dataVL_2, dataIR_2);
+        ALS_3.ambientLightRAW(dataVL_3, dataIR_3);
+        float lm60_temp = lm.temperature(lm.measure());
+
+        
+        Serial0.printf("%f %u %f %f %u %f %f %u %f %f %u %f %f ", lm60_temp, raw_a, RTD_A.resistance(raw_a), RTD_A.temperature(raw_a), raw_b, RTD_B.resistance(raw_b), RTD_B.temperature(raw_b), raw_c, RTD_C.resistance(raw_c), RTD_C.temperature(raw_c), raw_d, RTD_C.resistance(raw_d), RTD_C.temperature(raw_d));
+
+        Serial0.printf("%u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u\r\n", dataVL_1[0], dataIR_1[0], dataVL_1[1], dataIR_1[1], dataVL_1[2], dataIR_1[2], dataVL_1[3], dataIR_1[3], dataVL_2[0], dataIR_2[0], dataVL_2[1], dataIR_2[1], dataVL_2[2], dataIR_2[2], dataVL_2[3], dataIR_2[3], dataVL_3[0], dataIR_3[0], dataVL_3[1], dataIR_3[1], dataVL_3[2], dataIR_3[2], dataVL_3[3], dataIR_3[3]);
+
+        _delay_ms(1);
     }
 }
