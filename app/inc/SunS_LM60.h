@@ -22,12 +22,12 @@ class SunS_LM60 {
         return result;
     }
 
-    float temperature(uint16_t raw) {
+    int16_t temperature(uint16_t raw) {
         float mv = bits_to_mV(raw);
-        float temperature = LM60::temperature(mv);
+        int16_t temperature = static_cast<int16_t>(LM60::temperature(mv));
         return temperature;
     }
-\
+
  private:
     const InternalADC::Input analog_channel;
     const uint8_t oversample;

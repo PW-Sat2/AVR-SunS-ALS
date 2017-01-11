@@ -27,9 +27,9 @@ class SunS_RTD {
         return ref_resistance/(reference_voltage*1000/mv - 1); 
     }
 
-    float temperature(uint16_t raw) {
+    int16_t temperature(uint16_t raw) {
         float res = resistance(raw);
-        float temperature = rtd.temperature(res);
+        int16_t temperature = static_cast<int16_t>(rtd.temperature(res));
         return temperature;
     }
 
