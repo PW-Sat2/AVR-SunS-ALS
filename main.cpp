@@ -165,7 +165,7 @@ void hal::TWISlaveRegisterAccess::callbackRx() {
             registers.registerMapArray[register_counter+i] = TWISlaveRegisterAccess::rx_buffer[i+1];
         }
 
-    } else if ((1 == TWISlaveRegisterAccess::rx_buffer_cnt) && (92 > TWISlaveRegisterAccess::rx_buffer[0])) {
+    } else if ((1 == TWISlaveRegisterAccess::rx_buffer_cnt) && (registers_len > TWISlaveRegisterAccess::rx_buffer[0])) {
             hal::TWISlaveRegisterAccess::tx_buffer = &(registers.registerMapArray[register_counter]);
 
         // if register 0x00 is scheduled to be read
