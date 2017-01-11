@@ -40,18 +40,30 @@ union registerDesc {
         int16_t TEMPERATURE_C;
         int16_t TEMPERATURE_D;
         int16_t TEMPERATURE_STRUCT;
-        uint16_t ALS_1A_RAW;
-        uint16_t ALS_1B_RAW;
-        uint16_t ALS_1C_RAW;
-        uint16_t ALS_1D_RAW;
-        uint16_t ALS_2A_RAW;
-        uint16_t ALS_2B_RAW;
-        uint16_t ALS_2C_RAW;
-        uint16_t ALS_2D_RAW;
-        uint16_t ALS_3A_RAW;
-        uint16_t ALS_3B_RAW;
-        uint16_t ALS_3C_RAW;
-        uint16_t ALS_3D_RAW;
+        uint16_t ALS_1A_VL_RAW;
+        uint16_t ALS_1B_VL_RAW;
+        uint16_t ALS_1C_VL_RAW;
+        uint16_t ALS_1D_VL_RAW;
+        uint16_t ALS_2A_VL_RAW;
+        uint16_t ALS_2B_VL_RAW;
+        uint16_t ALS_2C_VL_RAW;
+        uint16_t ALS_2D_VL_RAW;
+        uint16_t ALS_3A_VL_RAW;
+        uint16_t ALS_3B_VL_RAW;
+        uint16_t ALS_3C_VL_RAW;
+        uint16_t ALS_3D_VL_RAW;
+        uint16_t ALS_1A_IR_RAW;
+        uint16_t ALS_1B_IR_RAW;
+        uint16_t ALS_1C_IR_RAW;
+        uint16_t ALS_1D_IR_RAW;
+        uint16_t ALS_2A_IR_RAW;
+        uint16_t ALS_2B_IR_RAW;
+        uint16_t ALS_2C_IR_RAW;
+        uint16_t ALS_2D_IR_RAW;
+        uint16_t ALS_3A_IR_RAW;
+        uint16_t ALS_3B_IR_RAW;
+        uint16_t ALS_3C_IR_RAW;
+        uint16_t ALS_3D_IR_RAW;
         uint16_t TEMPERATURE_A_RAW;
         uint16_t TEMPERATURE_B_RAW;
         uint16_t TEMPERATURE_C_RAW;
@@ -71,7 +83,7 @@ union registerDesc {
         uint8_t ALS_3C_ID;
         uint8_t ALS_3D_ID;
     } registerMap;
-    uint8_t registerMapArray[66];
+    volatile uint8_t registerMapArray[90];
 };
 #pragma pack(pop) 
 
@@ -119,31 +131,44 @@ volatile registerDesc registers = {
         0x00,
         0x00,
         0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
         0x00
     }
 };
 
-bool statusReset = false; 
-constexpr uint8_t registers_len = 50;
+volatile bool statusReset = false; 
+constexpr uint8_t registers_len = 90;
 
 void hal::TWISlave::callbackRx() {
-    uint8_t register_counter = TWISlave::rx_buffer[0];
-    uint8_t end_address = TWISlave::rx_buffer[0] + TWISlave::rx_buffer_cnt - 2;
+    volatile uint8_t register_counter = TWISlave::rx_buffer[0];
+    volatile uint8_t end_address = TWISlave::rx_buffer[0] + TWISlave::rx_buffer_cnt - 2;
 
-    if ((1 < TWISlave::rx_buffer_cnt) && (end_address < 2)) {
+    if ((1 < TWISlave::rx_buffer_cnt) && (end_address < 3)) {
+
         
         if (0x00 == TWISlave::rx_buffer[0]) {
             registers.registerMap.CTRL_STATUS |= (1 << 1);
         } else {
-            registers.registerMapArray[register_counter] == TWISlave::rx_buffer[1];
+            volatile uint8_t xx = TWISlave::rx_buffer[1];
+            registers.registerMapArray[register_counter] = xx;
         }
-
-        for (uint8_t i = 2; i < rx_buffer_cnt + 1; i++) {
-            registers.registerMapArray[++register_counter] = TWISlave::rx_buffer[i];
-        }
-
-    } else if (1 == TWISlave::rx_buffer_cnt) {
         
+        for (uint8_t i = 1; i < (rx_buffer_cnt - 1); i++) {
+            registers.registerMapArray[register_counter+i] = TWISlave::rx_buffer[i+1];
+        }
+
+    } else if ((1 == TWISlave::rx_buffer_cnt) && (90 > TWISlave::rx_buffer[0])) {
         for (uint8_t i = 0; i < (registers_len - register_counter); i++) {
             hal::TWISlave::tx_buffer[i] = registers.registerMapArray[register_counter+i];
         }
@@ -197,11 +222,10 @@ int main() {
     libs::array<uint8_t, 4> ids;
 
     while (true) {
-        if (registers.registerMap.CTRL_STATUS && 0b00000010) {
+        if (registers.registerMap.CTRL_STATUS & 0b00000010) {
+
             registers.registerMap.CTRL_STATUS &= ~(1 << 1);
 
-            Serial0.printf("trigger!\r\n");
-            
             // control
             registers.registerMap.AZIMUTH_ANGLE++;
         
@@ -223,14 +247,29 @@ int main() {
 
 
             ids = ALS_1.readPartID();
+            registers.registerMap.ALS_1A_ID = ids[0];
+            registers.registerMap.ALS_1B_ID = ids[1];
+            registers.registerMap.ALS_1C_ID = ids[2];
+            registers.registerMap.ALS_1D_ID = ids[3];
+
             ALS_1.setGain(ALS_1_Type::GAIN_1);
-            ALS_1.setIntegrationTime(registers.registerMap.ALS_INTEGRATION_TIME);
+            ALS_1.setIntegrationTime(registers.registerMap.ALS_INTEGRATION_TIME);       
 
             ids = ALS_2.readPartID();
+            registers.registerMap.ALS_2A_ID = ids[0];
+            registers.registerMap.ALS_2B_ID = ids[1];
+            registers.registerMap.ALS_2C_ID = ids[2];
+            registers.registerMap.ALS_2D_ID = ids[3];
+
             ALS_2.setGain(ALS_2_Type::GAIN_1);
             ALS_2.setIntegrationTime(registers.registerMap.ALS_INTEGRATION_TIME);
 
             ids = ALS_3.readPartID();
+            registers.registerMap.ALS_3A_ID = ids[0];
+            registers.registerMap.ALS_3B_ID = ids[1];
+            registers.registerMap.ALS_3C_ID = ids[2];
+            registers.registerMap.ALS_3D_ID = ids[3];
+
             ALS_3.setGain(ALS_3_Type::GAIN_1);
             ALS_3.setIntegrationTime(registers.registerMap.ALS_INTEGRATION_TIME);
 
@@ -241,33 +280,43 @@ int main() {
             _delay_ms(900);
 
             ALS_1.ambientLightRAW(dataVL, dataIR);
-            registers.registerMap.ALS_1A_RAW = dataVL[0];
-            registers.registerMap.ALS_1B_RAW = dataVL[1];
-            registers.registerMap.ALS_1C_RAW = dataVL[2];
-            registers.registerMap.ALS_1D_RAW = dataVL[3];
+            registers.registerMap.ALS_1A_VL_RAW = dataVL[0];
+            registers.registerMap.ALS_1B_VL_RAW = dataVL[1];
+            registers.registerMap.ALS_1C_VL_RAW = dataVL[2];
+            registers.registerMap.ALS_1D_VL_RAW = dataVL[3];
+
+            registers.registerMap.ALS_1A_IR_RAW = dataIR[0];
+            registers.registerMap.ALS_1B_IR_RAW = dataIR[1];
+            registers.registerMap.ALS_1C_IR_RAW = dataIR[2];
+            registers.registerMap.ALS_1D_IR_RAW = dataIR[3];
 
             ALS_2.ambientLightRAW(dataVL, dataIR);
-            registers.registerMap.ALS_2A_RAW = dataVL[0];
-            registers.registerMap.ALS_2B_RAW = dataVL[1];
-            registers.registerMap.ALS_2C_RAW = dataVL[2];
-            registers.registerMap.ALS_2D_RAW = dataVL[3];
+            registers.registerMap.ALS_2A_VL_RAW = dataVL[0];
+            registers.registerMap.ALS_2B_VL_RAW = dataVL[1];
+            registers.registerMap.ALS_2C_VL_RAW = dataVL[2];
+            registers.registerMap.ALS_2D_VL_RAW = dataVL[3];
+
+            registers.registerMap.ALS_2A_IR_RAW = dataIR[0];
+            registers.registerMap.ALS_2B_IR_RAW = dataIR[1];
+            registers.registerMap.ALS_2C_IR_RAW = dataIR[2];
+            registers.registerMap.ALS_2D_IR_RAW = dataIR[3];
 
             ALS_3.ambientLightRAW(dataVL, dataIR);
-            registers.registerMap.ALS_3A_RAW = dataVL[0];
-            registers.registerMap.ALS_3B_RAW = dataVL[1];
-            registers.registerMap.ALS_3C_RAW = dataVL[2];
-            registers.registerMap.ALS_3D_RAW = dataVL[3];
+            registers.registerMap.ALS_3A_VL_RAW = dataVL[0];
+            registers.registerMap.ALS_3B_VL_RAW = dataVL[1];
+            registers.registerMap.ALS_3C_VL_RAW = dataVL[2];
+            registers.registerMap.ALS_3D_VL_RAW = dataVL[3];
+
+            registers.registerMap.ALS_2A_IR_RAW = dataIR[0];
+            registers.registerMap.ALS_2B_IR_RAW = dataIR[1];
+            registers.registerMap.ALS_2C_IR_RAW = dataIR[2];
+            registers.registerMap.ALS_2D_IR_RAW = dataIR[3];
 
             uint16_t lm60_raw = lm.measure();
             registers.registerMap.TEMPERATURE_STRUCT = lm.temperature(lm60_raw);
             registers.registerMap.TEMPERATURE_STRUCT_RAW = lm60_raw;
             // new data
             registers.registerMap.CTRL_STATUS |= (1 << 2);
-
-        
-        //Serial0.printf("%f %u %f %f %u %f %f %u %f %f %u %f %f ", lm60_temp, raw_a, RTD_A.resistance(raw_a), RTD_A.temperature(raw_a), raw_b, RTD_B.resistance(raw_b), RTD_B.temperature(raw_b), raw_c, RTD_C.resistance(raw_c), RTD_C.temperature(raw_c), raw_d, RTD_C.resistance(raw_d), RTD_C.temperature(raw_d));
-
-        //Serial0.printf("%u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u\r\n", dataVL_1[0], dataIR_1[0], dataVL_1[1], dataIR_1[1], dataVL_1[2], dataIR_1[2], dataVL_1[3], dataIR_1[3], dataVL_2[0], dataIR_2[0], dataVL_2[1], dataIR_2[1], dataVL_2[2], dataIR_2[2], dataVL_2[3], dataIR_2[3], dataVL_3[0], dataIR_3[0], dataVL_3[1], dataIR_3[1], dataVL_3[2], dataIR_3[2], dataVL_3[3], dataIR_3[3]);
         }
     }
 }
