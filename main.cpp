@@ -9,7 +9,7 @@
 #include "Analog.h"
 #include "SunS_RTD.h"
 #include "RTD.h"
-#include "TWISlave.h"
+#include "TWISlaveRegisterAccess.h"
 
 
 using namespace hal;
@@ -29,9 +29,11 @@ using namespace bsp;
 #pragma pack(push, 1)
 union registerDesc {
     struct {
-        uint8_t CTRL_STATUS;
+        uint8_t TRIGGER;
         uint8_t ALS_INTEGRATION_TIME;
         uint8_t ALS_GAIN;
+        uint8_t STATUS;
+        uint8_t NEW_DATA;
         uint8_t WHO_AM_I;
         uint16_t AZIMUTH_ANGLE;
         uint16_t ELEVATION_ANGLE;
@@ -83,7 +85,7 @@ union registerDesc {
         uint8_t ALS_3C_ID;
         uint8_t ALS_3D_ID;
     } registerMap;
-    volatile uint8_t registerMapArray[90];
+    volatile uint8_t registerMapArray[92];
 };
 #pragma pack(pop) 
 
@@ -143,52 +145,56 @@ volatile registerDesc registers = {
         0x00,
         0x00,
         0x00,
+        0x00,
+        0x00,
         0x00
     }
 };
 
-volatile bool statusReset = false; 
-constexpr uint8_t registers_len = 90;
+volatile bool statusReset = false;
+volatile bool newData = false; 
+constexpr uint8_t registers_len = 92;
 
-void hal::TWISlave::callbackRx() {
-    volatile uint8_t register_counter = TWISlave::rx_buffer[0];
-    volatile uint8_t end_address = TWISlave::rx_buffer[0] + TWISlave::rx_buffer_cnt - 2;
+void hal::TWISlaveRegisterAccess::callbackRx() {
+    volatile uint8_t register_counter = TWISlaveRegisterAccess::rx_buffer[0];
+    volatile uint8_t end_address = TWISlaveRegisterAccess::rx_buffer[0] + TWISlaveRegisterAccess::rx_buffer_cnt - 2;
 
-    if ((1 < TWISlave::rx_buffer_cnt) && (end_address < 3)) {
-
+    if ((1 < TWISlaveRegisterAccess::rx_buffer_cnt) && (end_address < 3)) {
         
-        if (0x00 == TWISlave::rx_buffer[0]) {
-            registers.registerMap.CTRL_STATUS |= (1 << 1);
-        } else {
-            volatile uint8_t xx = TWISlave::rx_buffer[1];
-            registers.registerMapArray[register_counter] = xx;
-        }
-        
-        for (uint8_t i = 1; i < (rx_buffer_cnt - 1); i++) {
-            registers.registerMapArray[register_counter+i] = TWISlave::rx_buffer[i+1];
+        for (uint8_t i = 0; i < (rx_buffer_cnt - 1); i++) {
+            registers.registerMapArray[register_counter+i] = TWISlaveRegisterAccess::rx_buffer[i+1];
         }
 
-    } else if ((1 == TWISlave::rx_buffer_cnt) && (90 > TWISlave::rx_buffer[0])) {
-        for (uint8_t i = 0; i < (registers_len - register_counter); i++) {
-            hal::TWISlave::tx_buffer[i] = registers.registerMapArray[register_counter+i];
-        }
+    } else if ((1 == TWISlaveRegisterAccess::rx_buffer_cnt) && (92 > TWISlaveRegisterAccess::rx_buffer[0])) {
+            hal::TWISlaveRegisterAccess::tx_buffer = &(registers.registerMapArray[register_counter]);
 
         // if register 0x00 is scheduled to be read
-        if (0x00 == register_counter) {
+        if (3 == register_counter) {
             statusReset = true;
         } else {
             statusReset = false;
         }
 
+        if (4 == register_counter) {
+            newData = true;
+        } else {
+            newData = false;
+        }
+
     } else {
         // error in register (at address 0x00, bitfield, bit no. 0)
-        registers.registerMap.CTRL_STATUS |= (1 << 0);
+        registers.registerMap.STATUS = 1;
     }
 }
 
-void hal::TWISlave::callbackTx() {
+void hal::TWISlaveRegisterAccess::callbackTx() {
     if (true == statusReset) {
-        registers.registerMap.CTRL_STATUS &= ~(101 << 0);
+        registers.registerMap.STATUS = 0;
+        statusReset = false;
+    }
+
+    if (true == newData) {
+        registers.registerMap.NEW_DATA = 0;
         statusReset = false;
     }
 }
@@ -201,7 +207,7 @@ using ALS_3_Type = SunS_BH1730FVC<pins::SCL_3, pins::SDA_A3, pins::SDA_B3, pins:
 int main() {
     Serial0.init(9600);
     InternalADC::init(InternalADC::Prescaler::DIV_128, ADC_REFERENCE_TYPE);
-    hal::TWISlave::init(0x1E);
+    hal::TWISlaveRegisterAccess::init(0x1E);
     sei();
 
     
@@ -222,9 +228,9 @@ int main() {
     libs::array<uint8_t, 4> ids;
 
     while (true) {
-        if (registers.registerMap.CTRL_STATUS & 0b00000010) {
+        if (registers.registerMap.TRIGGER) {
 
-            registers.registerMap.CTRL_STATUS &= ~(1 << 1);
+            registers.registerMap.TRIGGER = 0;
 
             // control
             registers.registerMap.AZIMUTH_ANGLE++;
@@ -277,7 +283,11 @@ int main() {
             ALS_2.setMeasurement(ALS_2_Type::ONE_SHOT, ALS_2_Type::VL_IR);
             ALS_3.setMeasurement(ALS_3_Type::ONE_SHOT, ALS_3_Type::VL_IR);
 
-            _delay_ms(900);
+            // wait for conversion
+            for (uint8_t i = 0; i < registers.registerMap.ALS_INTEGRATION_TIME; i++) {
+                _delay_ms(3);
+            }
+            _delay_ms(2);
 
             ALS_1.ambientLightRAW(dataVL, dataIR);
             registers.registerMap.ALS_1A_VL_RAW = dataVL[0];
@@ -316,7 +326,7 @@ int main() {
             registers.registerMap.TEMPERATURE_STRUCT = lm.temperature(lm60_raw);
             registers.registerMap.TEMPERATURE_STRUCT_RAW = lm60_raw;
             // new data
-            registers.registerMap.CTRL_STATUS |= (1 << 2);
+            registers.registerMap.NEW_DATA = 1;
         }
     }
 }
