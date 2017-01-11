@@ -168,21 +168,22 @@ void hal::TWISlaveRegisterAccess::callbackRx() {
     } else if ((1 == TWISlaveRegisterAccess::rx_buffer_cnt) && (registers_len > TWISlaveRegisterAccess::rx_buffer[0])) {
             hal::TWISlaveRegisterAccess::tx_buffer = &(registers.registerMapArray[register_counter]);
 
-        // if register 0x00 is scheduled to be read
-        if (3 == register_counter) {
+        // if register 0x03 is scheduled to be read
+        if (0x03 == register_counter) {
             statusReset = true;
         } else {
             statusReset = false;
         }
 
-        if (4 == register_counter) {
+        // if register 0x04 is scheduled to be read
+        if (0x04 == register_counter) {
             newData = true;
         } else {
             newData = false;
         }
 
     } else {
-        // error in register (at address 0x00, bitfield, bit no. 0)
+        // error in communication
         registers.registerMap.STATUS = 1;
     }
 }
