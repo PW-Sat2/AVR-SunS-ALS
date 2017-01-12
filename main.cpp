@@ -18,7 +18,7 @@ using namespace bsp;
 int main() {
     // for debug only
     Serial0.init(9600);
-    
+
     InternalADC::init(InternalADC::Prescaler::DIV_128, ADC_REFERENCE_TYPE);
 
     hal::TWISlaveRegisterAccess::init(0x1E);
@@ -26,7 +26,7 @@ int main() {
     TWISlaveRegisterAccess::tx_buffer_max = TWIRegisterInterface::REGISTERS_LEN;
     sei();
 
-    SunS_LM60 lm(TEMP_BOARD, 16, ADC_REFERENCE_VALUE);
+    SunS_LM60 LM60(TEMP_BOARD, 16, ADC_REFERENCE_VALUE);
 
     SunS_RTD RTD_A(RTD_AIN_A, 16, RTD_REFERENCE_RESISTANCE, ADC_REFERENCE_VALUE);
     SunS_RTD RTD_B(RTD_AIN_B, 16, RTD_REFERENCE_RESISTANCE, ADC_REFERENCE_VALUE);
@@ -147,8 +147,8 @@ int main() {
                 ALS_collective_status = ALS_1_status | (ALS_2_status << 5) | (ALS_3_status << 10);
                 TWIRegisterInterface::registers.registerMap.ALS_STATUS = ALS_collective_status;
 
-                uint16_t lm60_raw = lm.measure();
-                TWIRegisterInterface::registers.registerMap.TEMPERATURE_STRUCT = lm.temperature(lm60_raw);
+                uint16_t lm60_raw = LM60.measure();
+                TWIRegisterInterface::registers.registerMap.TEMPERATURE_STRUCT = LM60.temperature(lm60_raw);
                 TWIRegisterInterface::registers.registerMap.TEMPERATURE_STRUCT_RAW = lm60_raw;
                 // new data
                 TWIRegisterInterface::registers.registerMap.STATUS |= TWIRegisterInterface::StatusReg::NEW_DATA;
