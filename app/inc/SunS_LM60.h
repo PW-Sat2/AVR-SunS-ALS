@@ -24,7 +24,7 @@ class SunS_LM60 {
 
     int16_t temperature(uint16_t raw) {
         float mv = bits_to_mV(raw);
-        int16_t temperature = static_cast<int16_t>(LM60::temperature(mv));
+        int16_t temperature = static_cast<int16_t>(100*LM60::temperature(mv));
         return temperature;
     }
 
