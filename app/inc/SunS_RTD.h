@@ -29,7 +29,7 @@ class SunS_RTD {
 
     int16_t temperature(uint16_t raw) {
         float res = resistance(raw);
-        int16_t temperature = static_cast<int16_t>(100*rtd.temperature(res));
+        int16_t temperature = static_cast<int16_t>(10*rtd.temperature(res));
         return temperature;
     }
 
