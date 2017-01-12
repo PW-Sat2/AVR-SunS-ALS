@@ -137,10 +137,10 @@ int main() {
                 TWIRegisterInterface::registers.registerMap.ALS_3C_VL_RAW = dataVL[2];
                 TWIRegisterInterface::registers.registerMap.ALS_3D_VL_RAW = dataVL[3];
 
-                TWIRegisterInterface::registers.registerMap.ALS_2A_IR_RAW = dataIR[0];
-                TWIRegisterInterface::registers.registerMap.ALS_2B_IR_RAW = dataIR[1];
-                TWIRegisterInterface::registers.registerMap.ALS_2C_IR_RAW = dataIR[2];
-                TWIRegisterInterface::registers.registerMap.ALS_2D_IR_RAW = dataIR[3];
+                TWIRegisterInterface::registers.registerMap.ALS_3A_IR_RAW = dataIR[0];
+                TWIRegisterInterface::registers.registerMap.ALS_3B_IR_RAW = dataIR[1];
+                TWIRegisterInterface::registers.registerMap.ALS_3C_IR_RAW = dataIR[2];
+                TWIRegisterInterface::registers.registerMap.ALS_3D_IR_RAW = dataIR[3];
 
 
                 // ALS collective status
