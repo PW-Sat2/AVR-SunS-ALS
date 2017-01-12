@@ -2,6 +2,7 @@
 #define SUNS_APP_INC_TWIREGISTERINTERFACE_H_
 
 #include <stdint.h>
+#include "TWISlaveRegisterAccess.h"
 
 namespace TWIRegisterInterface {
 
