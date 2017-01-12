@@ -8,20 +8,22 @@
 
 namespace hal {
 
+namespace softI2Cmulti_Types {
+enum Action {
+    START_WRITE = 0,
+    START_READ = 1
+};
+
+enum Status {
+    ACK_ERROR = 0,
+    OK = 1,
+    SCL_ERROR = 2
+};
+} // namespace softI2Cmulti_Types
+
 template<DigitalIO::Pin scl, DigitalIO::Pin SDA_A, DigitalIO::Pin SDA_B, DigitalIO::Pin SDA_C, DigitalIO::Pin SDA_D>
 class softI2Cmulti {
  public:
-    enum Action {
-        START_WRITE = 0,
-        START_READ = 1
-    };
-
-    enum Status {
-        ACK_ERROR = 0,
-        OK = 1,
-        SCL_ERROR = 2
-    };
-
     softI2Cmulti() {
     }
 
@@ -36,7 +38,7 @@ class softI2Cmulti {
     }
 
 
-    libs::array<Status, 5> start(uint8_t address, const Action start_action) {
+    libs::array<softI2Cmulti_Types::Status, 5> start(uint8_t address, const softI2Cmulti_Types::Action start_action) {
         this->SCL.pinmode(DigitalIO::INPUT);
         _delay_loop_1(this->hDelay);
         this->SDAs_LOW();
@@ -54,8 +56,8 @@ class softI2Cmulti {
         _delay_loop_1(this->hDelay);
     }
 
-    libs::array<Status, 5> write(uint8_t data) {
-        libs::array<Status, 5> return_status = {OK, OK, OK, OK, OK};
+    libs::array<softI2Cmulti_Types::Status, 5> write(uint8_t data) {
+        libs::array<softI2Cmulti_Types::Status, 5> return_status = {softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK};
 
         for (uint8_t i = 0; i < 8; i++) {
             this->SCL.pinmode(DigitalIO::OUTPUT);
@@ -75,7 +77,7 @@ class softI2Cmulti {
             while (0 == this->SCL.read()) {
                 timeout++;
                 if (timeout > 5000) {
-                    return_status[4] = SCL_ERROR;
+                    return_status[4] = softI2Cmulti_Types::Status::SCL_ERROR;
                     break;
                 }
             }
@@ -95,7 +97,7 @@ class softI2Cmulti {
 
         for (uint8_t i = 0; i < 4; i++) {
             if (0 != SDAs[i].read()) {
-                return_status[i] = ACK_ERROR;
+                return_status[i] = softI2Cmulti_Types::Status::ACK_ERROR;
             }
         }
 
@@ -174,54 +176,38 @@ class softI2Cmulti {
     }
 };
 
+namespace SunS_BH1730FVC_Types {
+enum Gain {
+    GAIN_1 = 0b00,
+    GAIN_2 = 0b01,
+    GAIN_64 = 0b10,
+    GAIN_128 = 0b11,
+};
 
+enum MeasurementType {
+    CONTINUOUS = 0b00000011,
+    ONE_SHOT = 0b00001011,
+};
+
+enum DataSel {
+    VL_IR = 0b00000000,
+    VL_ONLY = 0b00000100,
+};
+} // namespace SunS_BH1730FVC_Types
 
 template<DigitalIO::Pin scl, DigitalIO::Pin SDA_A, DigitalIO::Pin SDA_B, DigitalIO::Pin SDA_C, DigitalIO::Pin SDA_D>
 class SunS_BH1730FVC {
  public:
-    enum Gain {
-        GAIN_1 = 0b00,
-        GAIN_2 = 0b01,
-        GAIN_64 = 0b10,
-        GAIN_128 = 0b11,
-    };
-
-    enum RegisterAddr {
-        CONTROL = 0x00,
-        TIMING = 0x01,
-        INTERRUPT = 0x02,
-        THLLOW = 0x03,
-        THLHIGH = 0x04,
-        THHLOW = 0x05,
-        THHHIGH = 0x06,
-        GAIN = 0x07,
-        ID = 0x12,
-        DATA0LOW = 0x14,
-        DATA0HIGH = 0x15,
-        DATA1LOW = 0x16,
-        DATA1HIGH = 0x17,
-    };
-
-    enum MeasurementType {
-        CONTINUOUS = 0b00000011,
-        ONE_SHOT = 0b00001011,
-    };
-
-    enum DataSel {
-        VL_IR = 0b00000000,
-        VL_ONLY = 0b00000100,
-    };
-
      SunS_BH1730FVC() {}
 
      void init() const {
          this->i2c.init();
      }
 
-    libs::array<typename softI2Cmulti<scl, SDA_A, SDA_B, SDA_C, SDA_D>::Status, 5> setIntegrationTime(uint8_t cycle) {
-        libs::array<Status, 5> comm_status = {Status::OK, Status::OK, Status::OK, Status::OK, Status::OK};
+    libs::array<softI2Cmulti_Types::Status, 5> setIntegrationTime(uint8_t cycle) {
+        libs::array<softI2Cmulti_Types::Status, 5> comm_status = {softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK};
 
-        libs::array<Status, 5> return_status = this->i2c.start(this->address, I2C_Action::START_WRITE);
+        libs::array<softI2Cmulti_Types::Status, 5> return_status = this->i2c.start(this->address, softI2Cmulti_Types::START_WRITE);
 
         this->processStatus(comm_status, return_status);
 
@@ -230,22 +216,19 @@ class SunS_BH1730FVC {
         this->processStatus(comm_status, return_status);
 
         // ITIME
-        return_status = this->i2c.write(256-cycle);
+        return_status = this->i2c.write(static_cast<uint8_t>(256-cycle));
 
         this->processStatus(comm_status, return_status);
 
         this->i2c.stop();
-
-        this->current_time = (256-cycle);
-
         return comm_status;
     }
 
 
-    libs::array<typename softI2Cmulti<scl, SDA_A, SDA_B, SDA_C, SDA_D>::Status, 5> setGain(Gain gain) {
-        libs::array<Status, 5> comm_status = {Status::OK, Status::OK, Status::OK, Status::OK, Status::OK};
+    libs::array<softI2Cmulti_Types::Status, 5> setGain(SunS_BH1730FVC_Types::Gain gain) {
+        libs::array<softI2Cmulti_Types::Status, 5> comm_status = {softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK};
 
-        libs::array<Status, 5> return_status = this->i2c.start(this->address, I2C_Action::START_WRITE);
+        libs::array<softI2Cmulti_Types::Status, 5> return_status = this->i2c.start(this->address, softI2Cmulti_Types::START_WRITE);
 
         this->processStatus(comm_status, return_status);
 
@@ -254,32 +237,17 @@ class SunS_BH1730FVC {
         this->processStatus(comm_status, return_status);
 
         // GAIN
-        return_status = this->i2c.write(gain);
+        return_status = this->i2c.write(static_cast<uint8_t>(gain));
 
         this->processStatus(comm_status, return_status);
 
         this->i2c.stop();
 
-        switch (gain) {
-            case GAIN_1:
-                this->current_gain = 1;
-            break;
-            case GAIN_2:
-                this->current_gain = 2;
-            break;
-            case GAIN_64:
-                this->current_gain = 64;
-            break;
-            case GAIN_128:
-                this->current_gain = 128;
-            break;
-        }
-
         return comm_status;
     }
 
     libs::array<uint8_t, 4> readPartID() {
-        this->i2c.start(this->address, I2C_Action::START_WRITE);
+        this->i2c.start(this->address, softI2Cmulti_Types::START_WRITE);
 
 
         this->i2c.write(0b10000000 | ID);
@@ -287,7 +255,7 @@ class SunS_BH1730FVC {
 
         this->i2c.stop();
 
-        this->i2c.start(this->address, I2C_Action::START_READ);
+        this->i2c.start(this->address, softI2Cmulti_Types::START_READ);
 
         libs::array<uint8_t, 4> ids =  this->i2c.read(false);
 
@@ -296,15 +264,15 @@ class SunS_BH1730FVC {
         return ids;
     }
 
-    libs::array<typename softI2Cmulti<scl, SDA_A, SDA_B, SDA_C, SDA_D>::Status, 5> ambientLightRAW(libs::array<uint16_t, 4>& VL, libs::array<uint16_t, 4>& IR) {
+    libs::array<softI2Cmulti_Types::Status, 5> ambientLightRAW(libs::array<uint16_t, 4>& VL, libs::array<uint16_t, 4>& IR) {
         libs::array<uint8_t, 4> DATA0MSB;
         libs::array<uint8_t, 4> DATA0LSB;
         libs::array<uint8_t, 4> DATA1MSB;
         libs::array<uint8_t, 4> DATA1LSB;
 
-        libs::array<Status, 5> comm_status = {Status::OK, Status::OK, Status::OK, Status::OK, Status::OK};
+        libs::array<softI2Cmulti_Types::Status, 5> comm_status = {softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK};
 
-        libs::array<Status, 5> return_status = this->i2c.start(this->address, I2C_Action::START_WRITE);
+        libs::array<softI2Cmulti_Types::Status, 5> return_status = this->i2c.start(this->address, softI2Cmulti_Types::START_WRITE);
 
         this->processStatus(comm_status, return_status);
 
@@ -314,7 +282,7 @@ class SunS_BH1730FVC {
 
         this->i2c.stop();
 
-        return_status = this->i2c.start(this->address, I2C_Action::START_READ);
+        return_status = this->i2c.start(this->address, softI2Cmulti_Types::START_READ);
 
         this->processStatus(comm_status, return_status);
 
@@ -335,13 +303,13 @@ class SunS_BH1730FVC {
     }
 
 
-    libs::array<typename softI2Cmulti<scl, SDA_A, SDA_B, SDA_C, SDA_D>::Status, 5> ambientLightRAW(libs::array<uint16_t, 4>& VL) {
+    libs::array<softI2Cmulti_Types::Status, 5> ambientLightRAW(libs::array<uint16_t, 4>& VL) {
         libs::array<uint8_t, 4> DATA0MSB;
         libs::array<uint8_t, 4> DATA0LSB;
 
-        libs::array<Status, 5> comm_status = {Status::OK, Status::OK, Status::OK, Status::OK, Status::OK};
+        libs::array<softI2Cmulti_Types::Status, 5> comm_status = {softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK};
 
-        libs::array<Status, 5> return_status = this->i2c.start(this->address, I2C_Action::START_WRITE);
+        libs::array<softI2Cmulti_Types::Status, 5> return_status = this->i2c.start(this->address, softI2Cmulti_Types::START_WRITE);
         this->processStatus(comm_status, return_status);
 
         return_status = this->i2c.write(0b10010100);
@@ -349,7 +317,7 @@ class SunS_BH1730FVC {
 
         this->i2c.stop();
 
-        return_status = this->i2c.start(this->address, I2C_Action::START_READ);
+        return_status = this->i2c.start(this->address, softI2Cmulti_Types::START_READ);
         this->processStatus(comm_status, return_status);
 
         // LSB first, then MSB!
@@ -365,10 +333,10 @@ class SunS_BH1730FVC {
         return comm_status;
     }
 
-    libs::array<typename softI2Cmulti<scl, SDA_A, SDA_B, SDA_C, SDA_D>::Status, 5> setMeasurement(MeasurementType type, DataSel data_sel) {
-        libs::array<Status, 5> comm_status = {Status::OK, Status::OK, Status::OK, Status::OK, Status::OK};
+    libs::array<softI2Cmulti_Types::Status, 5> setMeasurement(SunS_BH1730FVC_Types::MeasurementType type, SunS_BH1730FVC_Types::DataSel data_sel) {
+        libs::array<softI2Cmulti_Types::Status, 5> comm_status = {softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK, softI2Cmulti_Types::Status::OK};
 
-        libs::array<Status, 5> return_status = this->i2c.start(this->address, I2C_Action::START_WRITE);
+        libs::array<softI2Cmulti_Types::Status, 5> return_status = this->i2c.start(this->address, softI2Cmulti_Types::START_WRITE);
         this->processStatus(comm_status, return_status);
 
         return_status = this->i2c.write(0b10000000 | CONTROL);
@@ -386,21 +354,31 @@ class SunS_BH1730FVC {
     softI2Cmulti<scl, SDA_A, SDA_B, SDA_C, SDA_D> i2c;
     const uint8_t address = 0b0101001;
 
-    uint8_t current_gain = 1;
-    uint8_t current_time = 218;
+    enum RegisterAddr {
+        CONTROL = 0x00,
+        TIMING = 0x01,
+        INTERRUPT = 0x02,
+        THLLOW = 0x03,
+        THLHIGH = 0x04,
+        THHLOW = 0x05,
+        THHHIGH = 0x06,
+        GAIN = 0x07,
+        ID = 0x12,
+        DATA0LOW = 0x14,
+        DATA0HIGH = 0x15,
+        DATA1LOW = 0x16,
+        DATA1HIGH = 0x17,
+    };
 
-    using Status = typename softI2Cmulti<scl, SDA_A, SDA_B, SDA_C, SDA_D>::Status;
-    using I2C_Action = typename softI2Cmulti<scl, SDA_A, SDA_B, SDA_C, SDA_D>::Action;
-
-    void processStatus(libs::array<Status, 5>& status_return,  libs::array<Status, 5>& current_status) {
+    void processStatus(libs::array<softI2Cmulti_Types::Status, 5>& status_return,  libs::array<softI2Cmulti_Types::Status, 5>& current_status) {
         for (uint8_t i = 0; i < 4; i++) {
-            if (Status::ACK_ERROR == current_status[i]) {
-                status_return[i] = Status::ACK_ERROR;
+            if (softI2Cmulti_Types::Status::ACK_ERROR == current_status[i]) {
+                status_return[i] = softI2Cmulti_Types::Status::ACK_ERROR;
             }
         }
 
-        if (Status::SCL_ERROR == current_status[4]) {
-            status_return[4] = Status::SCL_ERROR;
+        if (softI2Cmulti_Types::Status::SCL_ERROR == current_status[4]) {
+            status_return[4] = softI2Cmulti_Types::Status::SCL_ERROR;
         }
     }
 };
