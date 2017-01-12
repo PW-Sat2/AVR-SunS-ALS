@@ -193,12 +193,16 @@ int main() {
     libs::array<uint8_t, 4> ids;
 
     while (true) {
-        if (true == TRIGGER) {
+        if (true == TRIGGER) {    
             TRIGGER = false;
-
             if ((ALS_INTEGRATION_TIME > 1) && (ALS_GAIN <= 3)) {
 
-                // control
+                uint8_t ALS_1_status = 0;
+                uint8_t ALS_2_status = 0;
+                uint8_t ALS_3_status = 0;
+                uint16_t ALS_collective_status = 0;
+
+                // for debug purposes only, since azimuth angle is not updated in any way
                 registers.registerMap.AZIMUTH_ANGLE++;
             
                 raw = RTD_A.measure();
@@ -224,8 +228,8 @@ int main() {
                 registers.registerMap.ALS_1C_ID = ids[2];
                 registers.registerMap.ALS_1D_ID = ids[3];
 
-                ALS_1.setGain(static_cast<SunS_BH1730FVC_Types::Gain>(ALS_GAIN));
-                ALS_1.setIntegrationTime(ALS_INTEGRATION_TIME);       
+                ALS_1_status |= ALS_1.setGain(static_cast<SunS_BH1730FVC_Types::Gain>(ALS_GAIN));
+                ALS_1_status |= ALS_1.setIntegrationTime(ALS_INTEGRATION_TIME);       
 
                 ids = ALS_2.readPartID();
                 registers.registerMap.ALS_2A_ID = ids[0];
@@ -233,8 +237,8 @@ int main() {
                 registers.registerMap.ALS_2C_ID = ids[2];
                 registers.registerMap.ALS_2D_ID = ids[3];
 
-                ALS_2.setGain(static_cast<SunS_BH1730FVC_Types::Gain>(ALS_GAIN));
-                ALS_2.setIntegrationTime(ALS_INTEGRATION_TIME);
+                ALS_2_status |= ALS_2.setGain(static_cast<SunS_BH1730FVC_Types::Gain>(ALS_GAIN));
+                ALS_2_status |= ALS_2.setIntegrationTime(ALS_INTEGRATION_TIME);
 
                 ids = ALS_3.readPartID();
                 registers.registerMap.ALS_3A_ID = ids[0];
@@ -242,12 +246,12 @@ int main() {
                 registers.registerMap.ALS_3C_ID = ids[2];
                 registers.registerMap.ALS_3D_ID = ids[3];
 
-                ALS_3.setGain(static_cast<SunS_BH1730FVC_Types::Gain>(ALS_GAIN));
-                ALS_3.setIntegrationTime(ALS_INTEGRATION_TIME);
+                ALS_3_status |= ALS_3.setGain(static_cast<SunS_BH1730FVC_Types::Gain>(ALS_GAIN));
+                ALS_3_status |= ALS_3.setIntegrationTime(ALS_INTEGRATION_TIME);
 
-                ALS_1.setMeasurement(SunS_BH1730FVC_Types::ONE_SHOT, SunS_BH1730FVC_Types::VL_IR);
-                ALS_2.setMeasurement(SunS_BH1730FVC_Types::ONE_SHOT, SunS_BH1730FVC_Types::VL_IR);
-                ALS_3.setMeasurement(SunS_BH1730FVC_Types::ONE_SHOT, SunS_BH1730FVC_Types::VL_IR);
+                ALS_1_status |= ALS_1.setMeasurement(SunS_BH1730FVC_Types::ONE_SHOT, SunS_BH1730FVC_Types::VL_IR);
+                ALS_2_status |= ALS_2.setMeasurement(SunS_BH1730FVC_Types::ONE_SHOT, SunS_BH1730FVC_Types::VL_IR);
+                ALS_3_status |= ALS_3.setMeasurement(SunS_BH1730FVC_Types::ONE_SHOT, SunS_BH1730FVC_Types::VL_IR);
 
                 // wait for conversion
                 for (uint8_t i = 0; i < ALS_INTEGRATION_TIME; i++) {
@@ -255,7 +259,7 @@ int main() {
                 }
                 _delay_ms(2);
 
-                ALS_1.ambientLightRAW(dataVL, dataIR);
+                ALS_1_status |= ALS_1.ambientLightRAW(dataVL, dataIR);
                 registers.registerMap.ALS_1A_VL_RAW = dataVL[0];
                 registers.registerMap.ALS_1B_VL_RAW = dataVL[1];
                 registers.registerMap.ALS_1C_VL_RAW = dataVL[2];
@@ -266,7 +270,7 @@ int main() {
                 registers.registerMap.ALS_1C_IR_RAW = dataIR[2];
                 registers.registerMap.ALS_1D_IR_RAW = dataIR[3];
 
-                ALS_2.ambientLightRAW(dataVL, dataIR);
+                ALS_2_status |= ALS_2.ambientLightRAW(dataVL, dataIR);
                 registers.registerMap.ALS_2A_VL_RAW = dataVL[0];
                 registers.registerMap.ALS_2B_VL_RAW = dataVL[1];
                 registers.registerMap.ALS_2C_VL_RAW = dataVL[2];
@@ -277,7 +281,7 @@ int main() {
                 registers.registerMap.ALS_2C_IR_RAW = dataIR[2];
                 registers.registerMap.ALS_2D_IR_RAW = dataIR[3];
 
-                ALS_3.ambientLightRAW(dataVL, dataIR);
+                ALS_3_status |= ALS_3.ambientLightRAW(dataVL, dataIR);
                 registers.registerMap.ALS_3A_VL_RAW = dataVL[0];
                 registers.registerMap.ALS_3B_VL_RAW = dataVL[1];
                 registers.registerMap.ALS_3C_VL_RAW = dataVL[2];
@@ -287,6 +291,11 @@ int main() {
                 registers.registerMap.ALS_2B_IR_RAW = dataIR[1];
                 registers.registerMap.ALS_2C_IR_RAW = dataIR[2];
                 registers.registerMap.ALS_2D_IR_RAW = dataIR[3];
+
+
+                // ALS collective status
+                ALS_collective_status = ALS_1_status | (ALS_2_status << 5) | (ALS_3_status << 10);
+                registers.registerMap.ALS_STATUS = ALS_collective_status;
 
                 uint16_t lm60_raw = lm.measure();
                 registers.registerMap.TEMPERATURE_STRUCT = lm.temperature(lm60_raw);
