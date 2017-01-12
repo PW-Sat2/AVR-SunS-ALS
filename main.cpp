@@ -9,11 +9,19 @@
 #include "Analog.h"
 #include "SunS_RTD.h"
 #include "RTD.h"
-#include "TWISlaveRegisterAccess.h"
 #include "TWIRegisterInterface.h"
+#include "TWISlaveRegisterAccess.h"
 
 using namespace hal;
 using namespace bsp;
+
+
+void waitForALS() {
+    for (uint8_t i = 0; i < TWIRegisterInterface::ALS_INTEGRATION_TIME; i++) {
+        _delay_ms(3);
+    }
+    _delay_ms(2);
+}
 
 int main() {
     // for debug only
@@ -103,11 +111,9 @@ int main() {
                 ALS_2_status |= ALS_2.setMeasurement(SunS_BH1730FVC_Types::ONE_SHOT, SunS_BH1730FVC_Types::VL_IR);
                 ALS_3_status |= ALS_3.setMeasurement(SunS_BH1730FVC_Types::ONE_SHOT, SunS_BH1730FVC_Types::VL_IR);
 
-                // wait for conversion
-                for (uint8_t i = 0; i < TWIRegisterInterface::ALS_INTEGRATION_TIME; i++) {
-                    _delay_ms(3);
-                }
-                _delay_ms(2);
+                // wait for conversion performed by the ALSes
+                waitForALS();
+
 
                 ALS_1_status |= ALS_1.ambientLightRAW(dataVL, dataIR);
                 TWIRegisterInterface::registers.registerMap.ALS_1A_VL_RAW = dataVL[0];
