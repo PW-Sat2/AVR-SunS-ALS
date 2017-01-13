@@ -13,6 +13,7 @@ enum StatusReg {
 
 #pragma pack(push, 1)
 union registerDesc {
+    struct {
         uint8_t STATUS;
         uint8_t WHO_AM_I;
         uint16_t AZIMUTH_ANGLE;
