@@ -13,7 +13,6 @@ enum StatusReg {
 
 #pragma pack(push, 1)
 union registerDesc {
-    struct {
         uint8_t STATUS;
         uint8_t WHO_AM_I;
         uint16_t AZIMUTH_ANGLE;
@@ -66,7 +65,7 @@ union registerDesc {
         uint8_t ALS_3C_ID;
         uint8_t ALS_3D_ID;
     } registerMap;
-    volatile uint8_t registerMapArray[89];
+    volatile uint8_t registerMapArray[88];
 };
 #pragma pack(pop) 
 
@@ -129,10 +128,10 @@ volatile registerDesc registers = {
 };
 
 volatile uint8_t ALS_INTEGRATION_TIME = 38;
-volatile uint8_t ALS_GAIN = 1;
+volatile uint8_t ALS_GAIN = 0;
 volatile bool TRIGGER = false;
 
-constexpr uint8_t REGISTERS_LEN = 89;
+constexpr uint8_t REGISTERS_LEN = 88;
 
 } // namespace TWIRegisterInterface
 
