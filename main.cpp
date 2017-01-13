@@ -54,7 +54,7 @@ int main() {
         if (true == TWIRegisterInterface::TRIGGER) {
             cli(); 
             TWIRegisterInterface::TRIGGER = false;
-            if ((TWIRegisterInterface::ALS_INTEGRATION_TIME > 1) && (TWIRegisterInterface::ALS_GAIN <= 3)) {
+            if ((TWIRegisterInterface::ALS_INTEGRATION_TIME > 0) && (TWIRegisterInterface::ALS_GAIN <= 3)) {
 
                 uint8_t ALS_1_status = 0;
                 uint8_t ALS_2_status = 0;
@@ -110,7 +110,9 @@ int main() {
                 ALS_3_status |= ALS_3.setMeasurement(SunS_BH1730FVC_Types::ONE_SHOT, SunS_BH1730FVC_Types::VL_IR);
 
                 // wait for conversion performed by the ALSes
-                waitForALS();
+                while (false == ALS_1.adcValid()) {};
+                while (false == ALS_2.adcValid()) {};
+                while (false == ALS_3.adcValid()) {};
 
 
                 ALS_1_status |= ALS_1.ambientLightRAW(dataVL, dataIR);
