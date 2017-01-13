@@ -343,6 +343,23 @@ class SunS_BH1730FVC {
         return comm_status;
     }
 
+
+    bool adcValid() {
+        this->i2c.start(this->address, softI2Cmulti_Types::START_WRITE);
+
+        this->i2c.write(0b10000000 | CONTROL);
+
+        this->i2c.stop();
+
+        this->i2c.start(this->address, softI2Cmulti_Types::START_READ);
+
+        // CONTROL
+        uint8_t reg_val = this->i2c.read(false)[0];
+
+        this->i2c.stop();
+        return static_cast<bool>(reg_val & (1 << 4));
+    }
+
  private:
     softI2Cmulti<scl, SDA_A, SDA_B, SDA_C, SDA_D> i2c;
     const uint8_t address = 0b0101001;
