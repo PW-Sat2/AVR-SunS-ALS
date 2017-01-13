@@ -51,7 +51,8 @@ int main() {
     libs::array<uint8_t, 4> ids;
 
     while (true) {
-        if (true == TWIRegisterInterface::TRIGGER) {    
+        if (true == TWIRegisterInterface::TRIGGER) {
+            cli(); 
             TWIRegisterInterface::TRIGGER = false;
             if ((TWIRegisterInterface::ALS_INTEGRATION_TIME > 1) && (TWIRegisterInterface::ALS_GAIN <= 3)) {
 
@@ -59,9 +60,6 @@ int main() {
                 uint8_t ALS_2_status = 0;
                 uint8_t ALS_3_status = 0;
                 uint16_t ALS_collective_status = 0;
-
-                // for debug purposes only, since azimuth angle is not updated in any way
-                TWIRegisterInterface::registers.registerMap.AZIMUTH_ANGLE++;
             
                 raw = RTD_A.measure();
                 TWIRegisterInterface::registers.registerMap.TEMPERATURE_A_RAW = raw;
@@ -158,9 +156,14 @@ int main() {
                 TWIRegisterInterface::registers.registerMap.TEMPERATURE_STRUCT_RAW = lm60_raw;
                 // new data
                 TWIRegisterInterface::registers.registerMap.STATUS |= TWIRegisterInterface::StatusReg::NEW_DATA;
+
+                // for debug purposes only, since azimuth angle is not updated in any way
+                TWIRegisterInterface::registers.registerMap.AZIMUTH_ANGLE++;
             } else {
                 TWIRegisterInterface::registers.registerMap.STATUS |= TWIRegisterInterface::StatusReg::ERROR;
             }
+
+            sei();
         }
     }
 }
