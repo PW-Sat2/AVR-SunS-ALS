@@ -26,12 +26,18 @@ void waitForALS() {
 int main() {
     // for debug only
     Serial0.init(9600);
+    Serial0.printf("Start SunS!\r\n");
+
+    hal::DigitalIO IRQ(1);
+    IRQ.init(hal::DigitalIO::OUTPUT);
+    IRQ.reset();
 
     InternalADC::init(InternalADC::Prescaler::DIV_128, ADC_REFERENCE_TYPE);
 
     hal::TWISlaveRegisterAccess::init(0x1E);
     TWISlaveRegisterAccess::tx_buffer_start = TWIRegisterInterface::registers.registerMapArray;
     TWISlaveRegisterAccess::tx_buffer_max = TWIRegisterInterface::REGISTERS_LEN;
+    
     sei();
 
     SunS_LM60 LM60(TEMP_BOARD, 16, ADC_REFERENCE_VALUE);
@@ -52,6 +58,7 @@ int main() {
 
     while (true) {
         if (true == TWIRegisterInterface::TRIGGER) {
+            IRQ.reset();
             cli(); 
             TWIRegisterInterface::TRIGGER = false;
             if ((TWIRegisterInterface::ALS_INTEGRATION_TIME > 0) && (TWIRegisterInterface::ALS_GAIN <= 3)) {
@@ -166,6 +173,7 @@ int main() {
             }
 
             sei();
+            IRQ.set();
         }
     }
 }

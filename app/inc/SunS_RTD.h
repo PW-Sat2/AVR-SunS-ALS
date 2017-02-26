@@ -9,7 +9,7 @@ namespace hal {
 class SunS_RTD {
  public:
     constexpr SunS_RTD(const InternalADC::Input input, const uint8_t resolution, const float ref_resistance, const float reference_voltage, const RTD rtd = RTD(1000)) :
-            analog_channel{input}, oversample((resolution < 10) ? 1 : ((resolution > 16) ? 64 : (1 << (resolution - 10)))), ref_resistance(ref_resistance), rtd{rtd}, reference_voltage(reference_voltage) {
+            analog_channel{input}, oversample((resolution < 10) ? 1 : ((resolution > 16) ? 4096 : (1 << 2*(resolution - 10)))), ref_resistance(ref_resistance), rtd{rtd}, reference_voltage(reference_voltage) {
     }
 
     uint16_t measure() {

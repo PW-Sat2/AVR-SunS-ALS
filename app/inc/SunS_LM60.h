@@ -9,7 +9,7 @@ namespace hal {
 class SunS_LM60 {
  public:
     constexpr SunS_LM60(const InternalADC::Input input, const uint8_t resolution, const float reference_voltage) :
-            analog_channel{input}, oversample((resolution < 10) ? 1 : ((resolution > 16) ? 64 : (1 << (resolution - 10)))), reference_voltage(reference_voltage) {
+            analog_channel{input}, oversample((resolution < 10) ? 1 : ((resolution > 16) ? 4096 : (1 << 2*(resolution - 10)))), reference_voltage(reference_voltage) {
     }
 
     uint16_t measure() {
